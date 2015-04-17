@@ -1,0 +1,294 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title>JQuery Snake</title>
+  
+  <script type='text/javascript' src='//code.jquery.com/jquery-2.1.0.js'></script>
+  
+  
+  
+  
+  <link rel="stylesheet" type="text/css" href="/css/result-light.css">
+  
+  <style type='text/css'>
+    * {
+	margin: 0;
+	padding: 0;
+}
+
+#game {
+    border: 1px solid #000;
+    display: inline-block;
+}
+
+.container {
+    width: 100%;
+    text-align: center;
+    min-width: 425px;
+}
+
+.cell {
+    width: 10px;
+    height: 10px;
+    float: left;
+}
+
+.head {
+    background-color: #00B;
+}
+
+.body {
+    background-color: #008800;
+}
+
+.food {
+    background-color: #BB0000;
+}
+  </style>
+  
+
+
+<script type='text/javascript'>//<![CDATA[ 
+$(window).load(function(){
+var SnakeGame = {
+    height: 30,
+    width: 40,
+    gameDiv: $('#game'),
+    score: 0,
+    
+    init: function() {
+        this.drawBoard();
+        this.render();
+    },
+    
+    reset: function() {
+        this.playerDir = 'r';
+        this.timing = 120;
+        this.food = [];
+        this.snake = [[Math.floor(this.width / 2),Math.floor(this.height / 2)]];
+        this.score = 0;
+        this.allowDirChange = true;
+        this.nextKey = 0;
+        this.paused = false;
+        
+        $('.food').removeClass('food');
+    },
+    
+    drawBoard: function() {
+        this.gameDiv.empty();
+        for(y = 0; y < this.height; y++) {
+            var row = this.gameDiv.append('<div id="row_' + y + '" class="row"></div>');
+            for(x = 0; x < this.width; x++) {
+                row.append('<div id="row_' + y + 'col_' + x + '" class="cell"></div>');
+            }
+        }
+    },
+    
+    findCell: function(coords) {        
+        var cell = $('#row_' + coords[1] + 'col_' + coords[0]);
+        
+        return cell;
+    },
+    
+    render: function() {
+        $('#score').html('Score: ' + this.score);
+        
+        this.findCell([this.food[0], this.food[1]]).addClass('food');
+        if(this.drawSnake()){
+            return true;
+        }else{
+            return false;
+        }
+    },
+   
+    drawSnake: function() {
+        $('.cell').removeClass('head body');
+        var headDiv = this.findCell([this.snake[0][0], this.snake[0][1]]);
+        headDiv.addClass('head');
+        
+        for(i = 1; i < this.snake.length; i++){
+            this.findCell([this.snake[i][0], this.snake[i][1]]).addClass('body');
+        }
+        
+        if(headDiv.length) {
+            return true;
+        }else{
+            return false;
+        }
+    },
+    
+    checkFood: function(square) {
+        var cell = this.findCell(square);
+        
+        if(cell.hasClass('food')){
+            cell.removeClass('food');
+            this.food = [];
+            this.score += Math.floor(this.snake.length / 5) + 1;
+            if (this.timing > 0) {
+                this.timing -= 1;
+            }
+            return true;
+        } else {
+            return false;
+        }
+    },
+    
+    checkMove: function(square) {
+        var cell = this.findCell(square);
+        if(cell.hasClass('body')){
+           return false;
+        } else {
+            return true;
+        }
+    },
+    
+    moveSnake: function() {
+        if(this.paused){
+            return true;
+        }
+        x = this.snake[0][0];
+        y = this.snake[0][1];
+        
+        switch(this.playerDir) {
+            case 'r':
+                this.snake.unshift([x + 1, y]);
+                break;
+            case 'l':
+                this.snake.unshift([x - 1, y]);
+                break;
+            case 'u':
+                this.snake.unshift([x, y + 1]);
+                break;
+            case 'd':
+                this.snake.unshift([x, y - 1]);
+                break;
+        }
+        this.allowDirChange = true;
+        if(this.nextKey){
+            this.changeDir(this.nextKey);
+            this.nextKey = 0;
+        }
+        
+        if(!this.checkFood(this.snake[0])) {
+            this.snake.pop();
+        }
+        
+        if(!this.checkMove(this.snake[0])) {
+            return false;
+        } else {
+            return this.render();
+        }
+    },
+    
+    genFood: function() {
+        var cell;
+        do {
+            this.food[0] = Math.floor(Math.random() * this.width);
+            this.food[1] = Math.floor(Math.random() * this.height);
+            cell = $('#row_' + this.food[1] + 'col_' + this.food[0]);
+        } while((cell.hasClass('body') || cell.hasClass('head')));
+    },
+    
+    changeDir: function(key){
+        if(!this.allowDirChange){
+            if(!this.nextKey){
+                this.nextKey = key;
+                return false;
+            }
+        }
+        
+        switch (key) {
+            case 37:
+                if(this.playerDir !== 'r') {
+                    this.playerDir = 'l';
+                }
+                break;
+            case 38:
+                if(this.playerDir !== 'u') {
+                    this.playerDir = 'd';
+                }
+                break;
+            case 39:
+                if(this.playerDir !== 'l') {
+                    this.playerDir = 'r';
+                }
+                break;
+            case 40:
+                if(this.playerDir !== 'd') {
+                    this.playerDir = 'u';
+                }
+                break;
+        }
+        
+        this.allowDirChange = false;
+    },
+    
+    checkPause: function(key) {
+        if(key == 32) {
+            this.paused = !this.paused;
+        }
+    },
+    
+    play: function() {
+        this.render();
+        
+        if(!($('.food').length)){
+            this.genFood();
+        }
+        setTimeout(function() {
+            if(SnakeGame.moveSnake()){
+                SnakeGame.play();
+            }else{
+                SnakeGame.playing = false;
+                alert('You died');
+            }
+        }, SnakeGame.timing);
+    }
+};
+
+$(function () {
+    $('#play_button').on('click', function(event){
+        event.preventDefault();
+        SnakeGame.reset();
+        SnakeGame.play();
+    });
+    
+    $(document).on('keydown', function(event) {
+		event.preventDefault();
+		SnakeGame.changeDir(event.which);
+	});
+    
+    $(document).on('keyup', function(event) {
+        event.preventDefault();
+        SnakeGame.checkPause(event.which);
+        
+    });
+    
+    SnakeGame.init();
+});
+});//]]>  
+
+</script>
+
+
+</head>
+<body>
+  <body>
+    <div class="container">
+        <div id="game">
+        </div>
+        <div id="bottom">
+            <div id="score">
+            </div>
+            <a href="#" id="play_button">Play</a>
+        </div>
+    </div>
+</body>
+  
+</body>
+
+
+</html>
+
